@@ -12,16 +12,16 @@ public final class InputManager implements KeyListener, MouseListener {
     private final BitSet justDown  = new BitSet(KEY_COUNT);
     private final BitSet justUp    = new BitSet(KEY_COUNT);
 
-    public void endFrame() {
+    public synchronized void endFrame() {
         justDown.clear();
         justUp.clear();
     }
 
-    public boolean isHeld(int keyCode)     { return pressed.get(keyCode); }
-    public boolean isJustPressed(int keyCode)  { return justDown.get(keyCode); }
-    public boolean isJustReleased(int keyCode) { return justUp.get(keyCode); }
+    public synchronized boolean isHeld(int keyCode)     { return pressed.get(keyCode); }
+    public synchronized boolean isJustPressed(int keyCode)  { return justDown.get(keyCode); }
+    public synchronized boolean isJustReleased(int keyCode) { return justUp.get(keyCode); }
 
-    @Override public void keyPressed(KeyEvent e) {
+    @Override public synchronized void keyPressed(KeyEvent e) {
         int k = e.getKeyCode();
         if (k < KEY_COUNT) {
             if (!pressed.get(k)) justDown.set(k);
@@ -29,7 +29,7 @@ public final class InputManager implements KeyListener, MouseListener {
         }
     }
 
-    @Override public void keyReleased(KeyEvent e) {
+    @Override public synchronized void keyReleased(KeyEvent e) {
         int k = e.getKeyCode();
         if (k < KEY_COUNT) {
             pressed.clear(k);

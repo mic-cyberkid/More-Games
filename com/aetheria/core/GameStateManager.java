@@ -39,11 +39,19 @@ public final class GameStateManager {
     }
 
     public void render(Renderer renderer, double alpha) {
+        if (stack.isEmpty()) return;
+
         Object[] arr = stack.toArray();
-        for (int i = arr.length - 1; i >= 0; i--) {
-            Screen s = (Screen) arr[i];
-            s.render(renderer, alpha);
-            if (!s.isTransparent()) break;
+        // 1. Find the bottom-most opaque screen
+        int firstToRender = 0;
+        for (int i = 0; i < arr.length; i++) {
+            firstToRender = i;
+            if (!((Screen) arr[i]).isTransparent()) break;
+        }
+
+        // 2. Render from that screen up to the top (which is index 0 in Deque.toArray())
+        for (int i = firstToRender; i >= 0; i--) {
+            ((Screen) arr[i]).render(renderer, alpha);
         }
     }
 }

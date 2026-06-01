@@ -10,7 +10,7 @@ public final class FrameTimer {
         long now = System.nanoTime();
         double ms = (now - lastTime) / 1_000_000.0;
         lastTime = now;
-        samples[index++ % SAMPLE_SIZE] = ms;
+        samples[(index++ & 0x7FFFFFFF) % SAMPLE_SIZE] = ms;
         return ms;
     }
 
