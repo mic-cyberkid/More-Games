@@ -29,8 +29,11 @@ public final class Game extends JPanel {
     private final DebugOverlay     debugOverlay;
     private final GameLoop         gameLoop;
 
-    // Phase 2: Sprite Integration
-    private com.aetheria.render.SpriteAnimator playerAnimator;
+    // Phase 3 & 4: ECS and World
+    private final com.aetheria.ecs.World world;
+    private final com.aetheria.world.WorldMap worldMap;
+    private final com.aetheria.render.Camera camera;
+    private final com.aetheria.entity.Player player;
 
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
@@ -43,26 +46,49 @@ public final class Game extends JPanel {
         this.frameTimer   = new FrameTimer();
         this.debugOverlay = new DebugOverlay();
 
-        // Phase 2 initialization
+        // Phase 3 & 4 initialization
+        this.world = new com.aetheria.ecs.World();
+        this.worldMap = com.aetheria.world.MapLoader.loadStub(64, 64);
+        this.camera = new com.aetheria.render.Camera(BASE_W, BASE_H);
+        camera.setWorldBounds(worldMap.getWidth() * 16, worldMap.getHeight() * 16);
+
+        world.addSystem(new com.aetheria.ecs.systems.MovementSystem(worldMap));
+        world.addSystem(new com.aetheria.ecs.systems.AnimationSystem());
+
+        // Create player entity
+        com.aetheria.ecs.Entity playerEnt = world.createEntity();
+        world.getMapper(com.aetheria.ecs.components.TransformComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.TransformComponent(100, 100));
+        world.getMapper(com.aetheria.ecs.components.VelocityComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.VelocityComponent(0, 0));
+        world.getMapper(com.aetheria.ecs.components.CollisionComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.CollisionComponent(new com.aetheria.util.Rect(2, 8, 12, 8)));
+
         BufferedImage kaelenImg = com.aetheria.assets.AssetManager.get().getImage("/assets/sheets/player/kaelen_sheet.png");
         com.aetheria.render.SpriteSheet kaelenSheet = new com.aetheria.render.SpriteSheet(kaelenImg);
-        this.playerAnimator = new com.aetheria.render.SpriteAnimator(kaelenSheet, 16, 16);
+        com.aetheria.render.SpriteAnimator playerAnimator = new com.aetheria.render.SpriteAnimator(kaelenSheet, 16, 16);
         playerAnimator.addAnimation("WALK_DOWN", 0, 3, 0.2, true);
         playerAnimator.play("WALK_DOWN");
+        world.getMapper(com.aetheria.ecs.components.SpriteComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.SpriteComponent(playerAnimator));
+
+        this.player = new com.aetheria.entity.Player(playerEnt.id());
 
         addKeyListener(inputManager);
         addMouseListener(inputManager);
 
         this.gameLoop = new GameLoop(this, stateManager, frameTimer);
 
-        // Stub state for Phase 1
+        // World state
         stateManager.swap(new Screen() {
             @Override public void onEnter() {}
             @Override public void onExit() {}
             @Override public void onSuspend() {}
             @Override public void onResume() {}
             @Override public void update(double dt) {
-                playerAnimator.update(dt);
+                player.update(world, actionMap, dt);
+                world.update(dt);
+
+                var tc = world.getMapper(com.aetheria.ecs.components.TransformComponent.class).get(player.getEntityId());
+                camera.follow(tc.x + 8, tc.y + 8);
+                camera.update(dt);
+
                 if (actionMap.isJustPressed(Action.DEBUG_TOGGLE)) {
                     debugOverlay.toggle();
                 }
@@ -73,16 +99,44 @@ public final class Game extends JPanel {
             }
             @Override public void render(Renderer r, double alpha) {
                 Graphics2D g = r.g();
-                g.setColor(Color.DARK_GRAY);
+                r.setCamera(camera);
+
+                // 1. Clear background
+                g.setColor(new Color(30, 30, 30));
                 g.fillRect(0, 0, BASE_W, BASE_H);
 
-                BufferedImage playerFrame = playerAnimator.getCurrentFrame();
-                if (playerFrame != null) {
-                    g.drawImage(playerFrame, BASE_W / 2 - 8, BASE_H / 2 - 8, null);
+                // 2. Render World (Camera Space)
+                r.applyTransform();
+
+                // Render Tiles (simplified)
+                for (com.aetheria.world.TileLayer layer : worldMap.getLayers()) {
+                    for (int y = 0; y < worldMap.getHeight(); y++) {
+                        for (int x = 0; x < worldMap.getWidth(); x++) {
+                            int tileId = layer.getTile(x, y);
+                            if (tileId > 0) {
+                                g.setColor(tileId == 2 ? Color.GRAY : Color.DARK_GRAY);
+                                g.fillRect(x * 16, y * 16, 16, 16);
+                            }
+                        }
+                    }
                 }
 
+                // Render Entities
+                var transformMapper = world.getMapper(com.aetheria.ecs.components.TransformComponent.class);
+                var spriteMapper = world.getMapper(com.aetheria.ecs.components.SpriteComponent.class);
+                for (int id : world.getActiveEntities()) {
+                    var tc = transformMapper.get(id);
+                    var sc = spriteMapper.get(id);
+                    if (tc != null && sc != null) {
+                        BufferedImage frame = sc.animator.getCurrentFrame();
+                        if (frame != null) g.drawImage(frame, (int)tc.x, (int)tc.y, null);
+                    }
+                }
+
+                // 3. Render UI (Screen Space)
+                r.resetTransform();
                 g.setColor(Color.WHITE);
-                g.drawString("Echoes of Aetheria - Phase 2 (Sprites)", 10, 20);
+                g.drawString("Echoes of Aetheria - Phase 4 (Movement/Camera)", 10, 20);
                 debugOverlay.render(g, frameTimer);
             }
         });
