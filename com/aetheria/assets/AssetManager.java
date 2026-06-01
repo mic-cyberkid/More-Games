@@ -22,13 +22,14 @@ public final class AssetManager {
             return images.get(path);
         }
 
-        try {
-            BufferedImage img = ImageIO.read(getClass().getResourceAsStream(path));
-            if (img == null) throw new IOException("Resource not found: " + path);
+        try (var is = getClass().getResourceAsStream(path)) {
+            if (is == null) throw new IOException("Resource not found: " + path);
+            BufferedImage img = ImageIO.read(is);
+            if (img == null) throw new IOException("Failed to decode image: " + path);
             images.put(path, img);
             return img;
         } catch (Exception e) {
-            Logger.warn(AssetManager.class, "Failed to load image: " + path + " - Using placeholder.");
+            Logger.warn(AssetManager.class, "Failed to load image: " + path + " (" + e.getMessage() + ") - Using placeholder.");
             return createPlaceholder();
         }
     }

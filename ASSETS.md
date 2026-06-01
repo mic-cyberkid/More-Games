@@ -10,7 +10,7 @@ All assets must follow this naming pattern to ensure compatibility with automate
 | **Tilesets** | `tiles/{biome}/{biome}_tileset.png` |
 | **SFX** | `audio/sfx/{category}/{name}.wav` |
 | **Music** | `audio/music/{name}.wav` |
-| **Fonts** | `fonts/{name}_font.png` |
+| **Fonts** | `fonts/{name}_font.png` (using default_font.png for now) |
 | **UI** | `ui/{element_name}.png` |
 
 ## Required Assets List

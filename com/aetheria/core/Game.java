@@ -29,6 +29,9 @@ public final class Game extends JPanel {
     private final DebugOverlay     debugOverlay;
     private final GameLoop         gameLoop;
 
+    // Phase 2: Sprite Integration
+    private com.aetheria.render.SpriteAnimator playerAnimator;
+
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
         setBackground(Color.BLACK);
@@ -39,6 +42,13 @@ public final class Game extends JPanel {
         this.actionMap    = new ActionMap(inputManager);
         this.frameTimer   = new FrameTimer();
         this.debugOverlay = new DebugOverlay();
+
+        // Phase 2 initialization
+        BufferedImage kaelenImg = com.aetheria.assets.AssetManager.get().getImage("/assets/sheets/player/kaelen_sheet.png");
+        com.aetheria.render.SpriteSheet kaelenSheet = new com.aetheria.render.SpriteSheet(kaelenImg);
+        this.playerAnimator = new com.aetheria.render.SpriteAnimator(kaelenSheet, 16, 16);
+        playerAnimator.addAnimation("WALK_DOWN", 0, 3, 0.2, true);
+        playerAnimator.play("WALK_DOWN");
 
         addKeyListener(inputManager);
         addMouseListener(inputManager);
@@ -52,6 +62,7 @@ public final class Game extends JPanel {
             @Override public void onSuspend() {}
             @Override public void onResume() {}
             @Override public void update(double dt) {
+                playerAnimator.update(dt);
                 if (actionMap.isJustPressed(Action.DEBUG_TOGGLE)) {
                     debugOverlay.toggle();
                 }
@@ -64,8 +75,14 @@ public final class Game extends JPanel {
                 Graphics2D g = r.g();
                 g.setColor(Color.DARK_GRAY);
                 g.fillRect(0, 0, BASE_W, BASE_H);
+
+                BufferedImage playerFrame = playerAnimator.getCurrentFrame();
+                if (playerFrame != null) {
+                    g.drawImage(playerFrame, BASE_W / 2 - 8, BASE_H / 2 - 8, null);
+                }
+
                 g.setColor(Color.WHITE);
-                g.drawString("Echoes of Aetheria - Phase 1 stub", 10, 20);
+                g.drawString("Echoes of Aetheria - Phase 2 (Sprites)", 10, 20);
                 debugOverlay.render(g, frameTimer);
             }
         });
