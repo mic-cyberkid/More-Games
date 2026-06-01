@@ -39,6 +39,10 @@ public final class Game extends JPanel {
     private final com.aetheria.story.StoryFlags storyFlags;
     private final com.aetheria.story.QuestLog  questLog;
     private final com.aetheria.story.DialogueEngine dialogueEngine;
+    private final com.aetheria.audio.AudioBus audioBus;
+    private final com.aetheria.audio.AudioEngine audioEngine;
+    private final com.aetheria.render.ParticleRenderer particleRenderer;
+    private final com.aetheria.ui.HUD hud;
 
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
@@ -50,6 +54,16 @@ public final class Game extends JPanel {
         this.actionMap    = new ActionMap(inputManager);
         this.frameTimer   = new FrameTimer();
         this.debugOverlay = new DebugOverlay();
+
+        // Phase 6 initialization
+        this.audioBus = new com.aetheria.audio.AudioBus();
+        this.audioEngine = new com.aetheria.audio.AudioEngine(audioBus);
+        this.particleRenderer = new com.aetheria.render.ParticleRenderer();
+        this.hud = new com.aetheria.ui.HUD();
+
+        com.aetheria.core.event.EventBus.get().subscribe(com.aetheria.core.event.events.MapTransitionEvent.class, e -> {
+            loadMap(e.nextMapId());
+        });
 
         // Phase 5 initialization
         this.storyFlags = new com.aetheria.story.StoryFlags();
@@ -69,6 +83,7 @@ public final class Game extends JPanel {
 
         world.addSystem(new com.aetheria.ecs.systems.MovementSystem(worldMap));
         world.addSystem(new com.aetheria.ecs.systems.AnimationSystem());
+        world.addSystem(new com.aetheria.ecs.systems.ParticleSystem(particleRenderer));
 
         // Create player entity
         com.aetheria.ecs.Entity playerEnt = world.createEntity();
@@ -161,13 +176,22 @@ public final class Game extends JPanel {
                     }
                 }
 
+                // Render Particles
+                particleRenderer.render(g);
+
                 // 3. Render UI (Screen Space)
                 r.resetTransform();
+                hud.render(g, 100, 100, questLog); // Stub HP
                 g.setColor(Color.WHITE);
-                g.drawString("Echoes of Aetheria - Phase 4 (Movement/Camera)", 10, 20);
+                g.drawString("Echoes of Aetheria - Phase 6 (Chapter 1)", 10, 20);
                 debugOverlay.render(g, frameTimer);
             }
         });
+    }
+
+    private void loadMap(String mapId) {
+        // Actual implementation would swap worldMap and reposition player
+        Logger.info(Game.class, "Transitioning to map: " + mapId);
     }
 
     public void start() {

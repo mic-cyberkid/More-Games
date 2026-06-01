@@ -5,6 +5,9 @@ import com.aetheria.ecs.components.CollisionComponent;
 import com.aetheria.ecs.components.TransformComponent;
 import com.aetheria.util.Rect;
 import com.aetheria.world.WorldMap;
+import com.aetheria.world.ObjectLayer;
+import com.aetheria.core.event.EventBus;
+import com.aetheria.core.event.events.MapTransitionEvent;
 
 public final class CollisionSystem {
 
@@ -29,6 +32,18 @@ public final class CollisionSystem {
         if (isColliding(tc.x, tc.y, cc.bounds, map)) {
             if (dy > 0) tc.y = (float) (Math.floor((tc.y + cc.bounds.y() + cc.bounds.h()) / 16) * 16 - cc.bounds.y() - cc.bounds.h() - 0.01f);
             if (dy < 0) tc.y = (float) (Math.ceil((tc.y + cc.bounds.y()) / 16) * 16 - cc.bounds.y() + 0.01f);
+        }
+
+        checkTriggers(tc.x, tc.y, cc.bounds, map);
+    }
+
+    private void checkTriggers(float x, float y, Rect bounds, WorldMap map) {
+        Rect playerRect = new Rect(x + bounds.x(), y + bounds.y(), bounds.w(), bounds.h());
+        for (ObjectLayer.MapTrigger trigger : map.getObjectLayer().getTriggers()) {
+            if (playerRect.intersects(trigger.bounds())) {
+                EventBus.get().post(new MapTransitionEvent(trigger.transition().targetMapId()));
+                break;
+            }
         }
     }
 

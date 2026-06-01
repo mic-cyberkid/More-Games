@@ -6,6 +6,7 @@ import java.util.List;
 public final class WorldMap {
     private final int width, height;
     private final List<TileLayer> layers = new ArrayList<>();
+    private final ObjectLayer objectLayer = new ObjectLayer();
 
     public WorldMap(int width, int height) {
         this.width = width;
@@ -18,6 +19,10 @@ public final class WorldMap {
 
     public List<TileLayer> getLayers() {
         return layers;
+    }
+
+    public ObjectLayer getObjectLayer() {
+        return objectLayer;
     }
 
     public int getWidth() { return width; }
