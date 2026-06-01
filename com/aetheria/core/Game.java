@@ -35,6 +35,11 @@ public final class Game extends JPanel {
     private final com.aetheria.render.Camera camera;
     private final com.aetheria.entity.Player player;
 
+    // Phase 5: Story and Interaction
+    private final com.aetheria.story.StoryFlags storyFlags;
+    private final com.aetheria.story.QuestLog  questLog;
+    private final com.aetheria.story.DialogueEngine dialogueEngine;
+
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
         setBackground(Color.BLACK);
@@ -45,6 +50,16 @@ public final class Game extends JPanel {
         this.actionMap    = new ActionMap(inputManager);
         this.frameTimer   = new FrameTimer();
         this.debugOverlay = new DebugOverlay();
+
+        // Phase 5 initialization
+        this.storyFlags = new com.aetheria.story.StoryFlags();
+        this.questLog = new com.aetheria.story.QuestLog();
+        this.dialogueEngine = new com.aetheria.story.DialogueEngine();
+        dialogueEngine.loadStub();
+
+        com.aetheria.core.event.EventBus.get().subscribe(com.aetheria.core.event.events.DialogueStartedEvent.class, e -> {
+            stateManager.push(new com.aetheria.story.DialogueScreen(stateManager, actionMap, dialogueEngine, storyFlags, e.dialogueId()));
+        });
 
         // Phase 3 & 4 initialization
         this.world = new com.aetheria.ecs.World();
@@ -69,6 +84,19 @@ public final class Game extends JPanel {
         world.getMapper(com.aetheria.ecs.components.SpriteComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.SpriteComponent(playerAnimator));
 
         this.player = new com.aetheria.entity.Player(playerEnt.id());
+        world.addSystem(new com.aetheria.ecs.systems.InteractionSystem(playerEnt.id(), actionMap));
+
+        // Create NPC Silas
+        com.aetheria.ecs.Entity silas = world.createEntity();
+        world.getMapper(com.aetheria.ecs.components.TransformComponent.class).set(silas.id(), new com.aetheria.ecs.components.TransformComponent(150, 100));
+        world.getMapper(com.aetheria.ecs.components.InteractableComponent.class).set(silas.id(), new com.aetheria.ecs.components.InteractableComponent("START"));
+
+        BufferedImage silasImg = com.aetheria.assets.AssetManager.get().getImage("/assets/sheets/player/kaelen_sheet.png"); // Placeholder
+        com.aetheria.render.SpriteSheet silasSheet = new com.aetheria.render.SpriteSheet(silasImg);
+        com.aetheria.render.SpriteAnimator silasAnim = new com.aetheria.render.SpriteAnimator(silasSheet, 16, 16);
+        silasAnim.addAnimation("IDLE", 0, 1, 1.0, true);
+        silasAnim.play("IDLE");
+        world.getMapper(com.aetheria.ecs.components.SpriteComponent.class).set(silas.id(), new com.aetheria.ecs.components.SpriteComponent(silasAnim));
 
         addKeyListener(inputManager);
         addMouseListener(inputManager);
