@@ -32,7 +32,7 @@ java \
   -Dsun.java2d.opengl=true \
   -Dsun.java2d.accthreshold=0 \
   --enable-preview \
-  -cp out com.aetheria.Main
+  -cp "out:." com.aetheria.Main
 ```
 
 ## Troubleshooting
