@@ -10,12 +10,16 @@ import java.awt.*;
 public final class MainMenu implements Screen {
     private final GameStateManager gsm;
     private final ActionMap actions;
+    private final Runnable onNewGame;
+    private final Runnable onLoadGame;
     private int selected = 0;
     private final String[] options = {"New Game", "Load Game", "Quit"};
 
-    public MainMenu(GameStateManager gsm, ActionMap actions) {
+    public MainMenu(GameStateManager gsm, ActionMap actions, Runnable onNewGame, Runnable onLoadGame) {
         this.gsm = gsm;
         this.actions = actions;
+        this.onNewGame = onNewGame;
+        this.onLoadGame = onLoadGame;
     }
 
     @Override public void onEnter() {}
@@ -28,7 +32,8 @@ public final class MainMenu implements Screen {
         if (actions.isJustPressed(Action.MOVE_UP)) selected = (selected - 1 + options.length) % options.length;
         if (actions.isJustPressed(Action.MOVE_DOWN)) selected = (selected + 1) % options.length;
         if (actions.isJustPressed(Action.CONFIRM)) {
-            if (selected == 0) { /* New Game logic handled in Game.java hook */ }
+            if (selected == 0) onNewGame.run();
+            if (selected == 1) onLoadGame.run();
             if (selected == 2) System.exit(0);
         }
     }

@@ -123,7 +123,18 @@ public final class Game extends JPanel {
         this.gameLoop = new GameLoop(this, stateManager, frameTimer);
 
         // Main Menu state
-        stateManager.swap(new com.aetheria.ui.MainMenu(stateManager, actionMap));
+        stateManager.swap(new com.aetheria.ui.MainMenu(
+            stateManager,
+            actionMap,
+            () -> stateManager.swap(createWorldScreen()),
+            () -> {
+                com.aetheria.save.SaveData data = saveManager.load(1);
+                if (data != null) {
+                    applySaveData(data);
+                    stateManager.swap(createWorldScreen());
+                }
+            }
+        ));
     }
 
     private Screen createWorldScreen() {
@@ -144,7 +155,29 @@ public final class Game extends JPanel {
                     debugOverlay.toggle();
                 }
                 if (actionMap.isJustPressed(Action.PAUSE)) {
-                    stateManager.push(new com.aetheria.ui.PauseMenu(stateManager, actionMap));
+                    stateManager.push(new com.aetheria.ui.PauseMenu(
+                        stateManager,
+                        actionMap,
+                        () -> {
+                            var tc = world.getMapper(com.aetheria.ecs.components.TransformComponent.class).get(player.getEntityId());
+                            com.aetheria.save.SaveData data = new com.aetheria.save.SaveData(
+                                1, 1, "wastes_start.amap", tc.x, tc.y,
+                                storyFlags.getAllFlags(), questLog.getInventory()
+                            );
+                            saveManager.save(data);
+                        },
+                        () -> stateManager.swap(new com.aetheria.ui.MainMenu(
+                            stateManager, actionMap,
+                            () -> stateManager.swap(createWorldScreen()),
+                            () -> {
+                                com.aetheria.save.SaveData data = saveManager.load(1);
+                                if (data != null) {
+                                    applySaveData(data);
+                                    stateManager.swap(createWorldScreen());
+                                }
+                            }
+                        ))
+                    ));
                 }
                 inputManager.endFrame();
             }
@@ -200,6 +233,19 @@ public final class Game extends JPanel {
     private void loadMap(String mapId) {
         // Actual implementation would swap worldMap and reposition player
         Logger.info(Game.class, "Transitioning to map: " + mapId);
+    }
+
+    private void applySaveData(com.aetheria.save.SaveData data) {
+        var tc = world.getMapper(com.aetheria.ecs.components.TransformComponent.class).get(player.getEntityId());
+        tc.x = data.playerX();
+        tc.y = data.playerY();
+        storyFlags.clear();
+        data.flags().forEach((k, v) -> {
+            if (v instanceof Boolean b) storyFlags.setFlag(k, b);
+            else if (v instanceof Integer i) storyFlags.setIntFlag(k, i);
+        });
+        questLog.getInventory().clear();
+        questLog.getInventory().addAll(data.inventory());
     }
 
     public void start() {

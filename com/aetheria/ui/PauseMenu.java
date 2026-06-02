@@ -10,12 +10,16 @@ import java.awt.*;
 public final class PauseMenu implements Screen {
     private final GameStateManager gsm;
     private final ActionMap actions;
+    private final Runnable onSave;
+    private final Runnable onQuit;
     private int selected = 0;
     private final String[] options = {"Resume", "Save", "Quit to Menu"};
 
-    public PauseMenu(GameStateManager gsm, ActionMap actions) {
+    public PauseMenu(GameStateManager gsm, ActionMap actions, Runnable onSave, Runnable onQuit) {
         this.gsm = gsm;
         this.actions = actions;
+        this.onSave = onSave;
+        this.onQuit = onQuit;
     }
 
     @Override public void onEnter() {}
@@ -28,6 +32,11 @@ public final class PauseMenu implements Screen {
         if (actions.isJustPressed(Action.PAUSE)) gsm.pop();
         if (actions.isJustPressed(Action.MOVE_UP)) selected = (selected - 1 + options.length) % options.length;
         if (actions.isJustPressed(Action.MOVE_DOWN)) selected = (selected + 1) % options.length;
+        if (actions.isJustPressed(Action.CONFIRM)) {
+            if (selected == 0) gsm.pop();
+            if (selected == 1) onSave.run();
+            if (selected == 2) onQuit.run();
+        }
     }
 
     @Override
