@@ -1,5 +1,5 @@
 @echo off
-echo Starting Echoes of Aetheria...
+setlocal
 java ^
   -Xmx512m ^
   -Xms128m ^
@@ -11,8 +11,5 @@ java ^
   -Dsun.java2d.opengl=true ^
   -Dsun.java2d.accthreshold=0 ^
   --enable-preview ^
-  -cp "out;." com.aetheria.Main
-if %errorlevel% neq 0 (
-    echo Game exited with error code %errorlevel%
-    pause
-)
+  -cp out com.aetheria.Main
+endlocal

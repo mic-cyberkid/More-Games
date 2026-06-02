@@ -6,7 +6,6 @@ import java.util.List;
 public final class WorldMap {
     private final int width, height;
     private final List<TileLayer> layers = new ArrayList<>();
-    private final ObjectLayer objectLayer = new ObjectLayer();
 
     public WorldMap(int width, int height) {
         this.width = width;
@@ -21,14 +20,11 @@ public final class WorldMap {
         return layers;
     }
 
-    public ObjectLayer getObjectLayer() {
-        return objectLayer;
-    }
-
     public int getWidth() { return width; }
     public int getHeight() { return height; }
 
     public boolean isSolid(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) return true;
         for (TileLayer layer : layers) {
             if (TileRegistry.get(layer.getTile(x, y)).solid()) {
                 return true;

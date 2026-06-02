@@ -1,13 +1,11 @@
 @echo off
-echo Building Echoes of Aetheria...
+setlocal
 if not exist out mkdir out
-dir /s /b *.java > sources.txt
-javac -d out --enable-preview --release 21 @sources.txt
-if %errorlevel% neq 0 (
-    echo Build FAILED!
-    pause
-    exit /b %errorlevel%
+dir /s /b com\*.java > sources.txt
+javac --enable-preview --release 21 -d out @sources.txt
+if %ERRORLEVEL% neq 0 (
+    echo Build failed!
+    exit /b %ERRORLEVEL%
 )
 echo Build successful.
-del sources.txt
-pause
+endlocal

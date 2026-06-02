@@ -35,18 +35,6 @@ public final class Game extends JPanel {
     private final com.aetheria.render.Camera camera;
     private final com.aetheria.entity.Player player;
 
-    // Phase 5: Story and Interaction
-    private final com.aetheria.story.StoryFlags storyFlags;
-    private final com.aetheria.story.QuestLog  questLog;
-    private final com.aetheria.story.DialogueEngine dialogueEngine;
-    private final com.aetheria.audio.AudioBus audioBus;
-    private final com.aetheria.audio.AudioEngine audioEngine;
-    private final com.aetheria.render.ParticleRenderer particleRenderer;
-    private final com.aetheria.ui.HUD hud;
-
-    // Phase 7: Save System
-    private final com.aetheria.save.SaveManager saveManager;
-
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
         setBackground(Color.BLACK);
@@ -58,27 +46,6 @@ public final class Game extends JPanel {
         this.frameTimer   = new FrameTimer();
         this.debugOverlay = new DebugOverlay();
 
-        // Phase 6 initialization
-        this.audioBus = new com.aetheria.audio.AudioBus();
-        this.audioEngine = new com.aetheria.audio.AudioEngine(audioBus);
-        this.particleRenderer = new com.aetheria.render.ParticleRenderer();
-        this.hud = new com.aetheria.ui.HUD();
-        this.saveManager = new com.aetheria.save.SaveManager();
-
-        com.aetheria.core.event.EventBus.get().subscribe(com.aetheria.core.event.events.MapTransitionEvent.class, e -> {
-            loadMap(e.nextMapId());
-        });
-
-        // Phase 5 initialization
-        this.storyFlags = new com.aetheria.story.StoryFlags();
-        this.questLog = new com.aetheria.story.QuestLog();
-        this.dialogueEngine = new com.aetheria.story.DialogueEngine();
-        dialogueEngine.loadStub();
-
-        com.aetheria.core.event.EventBus.get().subscribe(com.aetheria.core.event.events.DialogueStartedEvent.class, e -> {
-            stateManager.push(new com.aetheria.story.DialogueScreen(stateManager, actionMap, dialogueEngine, storyFlags, e.dialogueId()));
-        });
-
         // Phase 3 & 4 initialization
         this.world = new com.aetheria.ecs.World();
         this.worldMap = com.aetheria.world.MapLoader.loadStub(64, 64);
@@ -87,7 +54,6 @@ public final class Game extends JPanel {
 
         world.addSystem(new com.aetheria.ecs.systems.MovementSystem(worldMap));
         world.addSystem(new com.aetheria.ecs.systems.AnimationSystem());
-        world.addSystem(new com.aetheria.ecs.systems.ParticleSystem(particleRenderer));
 
         // Create player entity
         com.aetheria.ecs.Entity playerEnt = world.createEntity();
@@ -103,42 +69,14 @@ public final class Game extends JPanel {
         world.getMapper(com.aetheria.ecs.components.SpriteComponent.class).set(playerEnt.id(), new com.aetheria.ecs.components.SpriteComponent(playerAnimator));
 
         this.player = new com.aetheria.entity.Player(playerEnt.id());
-        world.addSystem(new com.aetheria.ecs.systems.InteractionSystem(playerEnt.id(), actionMap));
-
-        // Create NPC Silas
-        com.aetheria.ecs.Entity silas = world.createEntity();
-        world.getMapper(com.aetheria.ecs.components.TransformComponent.class).set(silas.id(), new com.aetheria.ecs.components.TransformComponent(150, 100));
-        world.getMapper(com.aetheria.ecs.components.InteractableComponent.class).set(silas.id(), new com.aetheria.ecs.components.InteractableComponent("START"));
-
-        BufferedImage silasImg = com.aetheria.assets.AssetManager.get().getImage("/assets/sheets/player/kaelen_sheet.png"); // Placeholder
-        com.aetheria.render.SpriteSheet silasSheet = new com.aetheria.render.SpriteSheet(silasImg);
-        com.aetheria.render.SpriteAnimator silasAnim = new com.aetheria.render.SpriteAnimator(silasSheet, 16, 16);
-        silasAnim.addAnimation("IDLE", 0, 1, 1.0, true);
-        silasAnim.play("IDLE");
-        world.getMapper(com.aetheria.ecs.components.SpriteComponent.class).set(silas.id(), new com.aetheria.ecs.components.SpriteComponent(silasAnim));
 
         addKeyListener(inputManager);
         addMouseListener(inputManager);
 
         this.gameLoop = new GameLoop(this, stateManager, frameTimer);
 
-        // Main Menu state
-        stateManager.swap(new com.aetheria.ui.MainMenu(
-            stateManager,
-            actionMap,
-            () -> stateManager.swap(createWorldScreen()),
-            () -> {
-                com.aetheria.save.SaveData data = saveManager.load(1);
-                if (data != null) {
-                    applySaveData(data);
-                    stateManager.swap(createWorldScreen());
-                }
-            }
-        ));
-    }
-
-    private Screen createWorldScreen() {
-        return new Screen() {
+        // World state
+        stateManager.swap(new Screen() {
             @Override public void onEnter() {}
             @Override public void onExit() {}
             @Override public void onSuspend() {}
@@ -155,29 +93,7 @@ public final class Game extends JPanel {
                     debugOverlay.toggle();
                 }
                 if (actionMap.isJustPressed(Action.PAUSE)) {
-                    stateManager.push(new com.aetheria.ui.PauseMenu(
-                        stateManager,
-                        actionMap,
-                        () -> {
-                            var tc = world.getMapper(com.aetheria.ecs.components.TransformComponent.class).get(player.getEntityId());
-                            com.aetheria.save.SaveData data = new com.aetheria.save.SaveData(
-                                1, 1, "wastes_start.amap", tc.x, tc.y,
-                                storyFlags.getAllFlags(), questLog.getInventory()
-                            );
-                            saveManager.save(data);
-                        },
-                        () -> stateManager.swap(new com.aetheria.ui.MainMenu(
-                            stateManager, actionMap,
-                            () -> stateManager.swap(createWorldScreen()),
-                            () -> {
-                                com.aetheria.save.SaveData data = saveManager.load(1);
-                                if (data != null) {
-                                    applySaveData(data);
-                                    stateManager.swap(createWorldScreen());
-                                }
-                            }
-                        ))
-                    ));
+                    Logger.info(Game.class, "Escape pressed - Toggle Pause (Stub)");
                 }
                 inputManager.endFrame();
             }
@@ -217,35 +133,13 @@ public final class Game extends JPanel {
                     }
                 }
 
-                // Render Particles
-                particleRenderer.render(g);
-
                 // 3. Render UI (Screen Space)
                 r.resetTransform();
-                hud.render(g, 100, 100, questLog); // Stub HP
                 g.setColor(Color.WHITE);
-                g.drawString("Echoes of Aetheria - Phase 6 (Chapter 1)", 10, 20);
+                g.drawString("Echoes of Aetheria - Live Preview (Movement Fixed)", 10, 20);
                 debugOverlay.render(g, frameTimer);
             }
         });
-    }
-
-    private void loadMap(String mapId) {
-        // Actual implementation would swap worldMap and reposition player
-        Logger.info(Game.class, "Transitioning to map: " + mapId);
-    }
-
-    private void applySaveData(com.aetheria.save.SaveData data) {
-        var tc = world.getMapper(com.aetheria.ecs.components.TransformComponent.class).get(player.getEntityId());
-        tc.x = data.playerX();
-        tc.y = data.playerY();
-        storyFlags.clear();
-        data.flags().forEach((k, v) -> {
-            if (v instanceof Boolean b) storyFlags.setFlag(k, b);
-            else if (v instanceof Integer i) storyFlags.setIntFlag(k, i);
-        });
-        questLog.getInventory().clear();
-        questLog.getInventory().addAll(data.inventory());
     }
 
     public void start() {
