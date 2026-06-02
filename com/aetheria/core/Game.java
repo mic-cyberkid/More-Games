@@ -44,6 +44,9 @@ public final class Game extends JPanel {
     private final com.aetheria.render.ParticleRenderer particleRenderer;
     private final com.aetheria.ui.HUD hud;
 
+    // Phase 7: Save System
+    private final com.aetheria.save.SaveManager saveManager;
+
     public Game() {
         setPreferredSize(new Dimension(BASE_W * SCALE, BASE_H * SCALE));
         setBackground(Color.BLACK);
@@ -60,6 +63,7 @@ public final class Game extends JPanel {
         this.audioEngine = new com.aetheria.audio.AudioEngine(audioBus);
         this.particleRenderer = new com.aetheria.render.ParticleRenderer();
         this.hud = new com.aetheria.ui.HUD();
+        this.saveManager = new com.aetheria.save.SaveManager();
 
         com.aetheria.core.event.EventBus.get().subscribe(com.aetheria.core.event.events.MapTransitionEvent.class, e -> {
             loadMap(e.nextMapId());
@@ -118,8 +122,12 @@ public final class Game extends JPanel {
 
         this.gameLoop = new GameLoop(this, stateManager, frameTimer);
 
-        // World state
-        stateManager.swap(new Screen() {
+        // Main Menu state
+        stateManager.swap(new com.aetheria.ui.MainMenu(stateManager, actionMap));
+    }
+
+    private Screen createWorldScreen() {
+        return new Screen() {
             @Override public void onEnter() {}
             @Override public void onExit() {}
             @Override public void onSuspend() {}
@@ -136,7 +144,7 @@ public final class Game extends JPanel {
                     debugOverlay.toggle();
                 }
                 if (actionMap.isJustPressed(Action.PAUSE)) {
-                    Logger.info(Game.class, "Escape pressed - Toggle Pause (Stub)");
+                    stateManager.push(new com.aetheria.ui.PauseMenu(stateManager, actionMap));
                 }
                 inputManager.endFrame();
             }
